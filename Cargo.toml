@@ -6,7 +6,7 @@ edition = "2021"
 # 将本二进制项目重构为一个库和二进制文件，这样/tests中的集成测试可以导入main函数
 [lib]
 path = "src/lib.rs"
-name = "test_zero2prod" # lib.name指定库名称。如果没有该字段，cargo将默认使用package.name作为库名称
+name = "zero2prod_lib" # lib.name指定库名称。如果没有该字段，cargo将默认使用package.name作为库名称
 
 #一个项目中只能有一个库，但是可以有多个二进制文件
 [[bin]]
@@ -16,3 +16,6 @@ name = "zero2prod"
 [dependencies]
 actix-web = "4"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies] # 仅在运行test或example时使用，他们没有被包含在最终的应用二进制文件中
+reqwest = "0.11"
