@@ -1,7 +1,7 @@
 use std::net::TcpListener;
 
 // 注：集成测试要求main函数以库的形式向外暴露
-use ::zero2prod_lib::run;
+use zero2prod_lib::startup::run;
 
 #[actix_web::test] // 是actix_web::main的测试等价物，可以使用`cargo expand --test health_check`（<- 测试文件名）来看宏生成了哪些代码
 async fn health_check_works() {
