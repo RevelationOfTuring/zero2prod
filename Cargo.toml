@@ -1,7 +1,17 @@
 [package]
-name = "zero2prod"
+name = "zero2prod" # package.name为二进制文件的名称
 version = "0.1.0"
 edition = "2021"
+
+# 将本二进制项目重构为一个库和二进制文件，这样/tests中的集成测试可以导入main函数
+[lib]
+path = "src/lib.rs"
+name = "test_zero2prod" # lib.name指定库名称。如果没有该字段，cargo将默认使用package.name作为库名称
+
+#一个项目中只能有一个库，但是可以有多个二进制文件
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod"
 
 [dependencies]
 actix-web = "4"
