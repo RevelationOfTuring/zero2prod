@@ -16,6 +16,7 @@ name = "zero2prod"
 [dependencies]
 actix-web = "4"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies] # 仅在运行test或example时使用，他们没有被包含在最终的应用二进制文件中
 reqwest = "0.11"
