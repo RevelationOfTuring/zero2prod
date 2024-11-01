@@ -22,10 +22,10 @@ uuid = { version = "1", features = ["v4"] }
 chrono = "0.4.15"
 
 [dependencies.sqlx]
-version = "0.6"
+version = "0.8.2"
 default-features = false
 features = [
-    "runtime-actix-rustls", # 告诉sqlx使用actix运行时作为其功能的一部分，使用rustls作为TLS后端
+    "runtime-tokio-rustls", # 告诉sqlx使用tokio运行时作为其功能的一部分，使用rustls作为TLS后端
     "macros",               # 允许使用sqlx::query!和sqlx::query_as!，很多地方会用到
     "postgres",             # 解锁Postgres特定功能（例如非标准SQL类型）
     "uuid",                 # 将SQL UUID映射到uuid包中的Uuid类型的支持，我们需要用它来处理id列
