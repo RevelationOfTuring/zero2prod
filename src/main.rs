@@ -5,10 +5,13 @@
 
 use std::net::TcpListener;
 
-use zero2prod_lib::startup::run;
+use zero2prod_lib::{configuration::get_configuration, startup::run};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:8080")?;
+    // 从配置文件读配置
+    let conf = get_configuration().expect("Failed to read configuration");
+    let address = format!("127.0.0.1:{}", conf.application_port);
+    let listener = TcpListener::bind(&address)?;
     run(listener)?.await
 }

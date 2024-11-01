@@ -17,17 +17,18 @@ name = "zero2prod"
 actix-web = "4"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 serde = { version = "1", features = ["derive"] }
+config = "0.13"
 
 [dependencies.sqlx]
 version = "0.6"
 default-features = false
 features = [
     "runtime-actix-rustls", # 告诉sqlx使用actix运行时作为其功能的一部分，使用rustls作为TLS后端
-    "macros", # 允许使用sqlx::query!和sqlx::query_as!，很多地方会用到
-    "postgres", # 解锁Postgres特定功能（例如非标准SQL类型）
-    "uuid", # 将SQL UUID映射到uuid包中的Uuid类型的支持，我们需要用它来处理id列
-    "chrono", # 增加将SQL timestamptz映射到chrono包中的DateTime<T>类型的支持。我们需要用它来处理subscribed_at列
-    "migrate", # 允许我们访问在sqlx-cli内部使用的相同函数来管理迁移。对于测试套件来说，非常有用
+    "macros",               # 允许使用sqlx::query!和sqlx::query_as!，很多地方会用到
+    "postgres",             # 解锁Postgres特定功能（例如非标准SQL类型）
+    "uuid",                 # 将SQL UUID映射到uuid包中的Uuid类型的支持，我们需要用它来处理id列
+    "chrono",               # 增加将SQL timestamptz映射到chrono包中的DateTime<T>类型的支持。我们需要用它来处理subscribed_at列
+    "migrate",              # 允许我们访问在sqlx-cli内部使用的相同函数来管理迁移。对于测试套件来说，非常有用
 ]
 
 [dev-dependencies] # 仅在运行test或example时使用，他们没有被包含在最终的应用二进制文件中
