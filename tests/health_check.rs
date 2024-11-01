@@ -1,5 +1,6 @@
 use std::net::TcpListener;
 
+use sqlx::{Connection, PgConnection};
 // 注：集成测试要求main函数以库的形式向外暴露
 use zero2prod_lib::startup::run;
 
@@ -38,6 +39,15 @@ fn spawn_app() -> String {
 #[actix_web::test]
 async fn subscribe_return_a_200_for_valid_form_data() {
     let address = spawn_app();
+    let configuration =
+        zero2prod_lib::configuration::get_configuration().expect("Failed to read configuration");
+    let connection_string = configuration.database.connection_string();
+    // 连接Postgres
+    // 注：为了调用PgConnection::connect，必须也导入trait Connection。因为它不是该结构体的内在方法
+    let connection = PgConnection::connect(&connection_string)
+        .await
+        .expect("Failed to connect to Postgres.");
+
     let client = reqwest::Client::new();
 
     let body = "name=michael%20wang&email=revelationofturing%40gmail.com";
