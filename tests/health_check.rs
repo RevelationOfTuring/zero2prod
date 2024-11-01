@@ -1,19 +1,26 @@
 use std::net::TcpListener;
 
-use sqlx::{Connection, PgConnection};
+use sqlx::PgPool;
 // 注：集成测试要求main函数以库的形式向外暴露
-use zero2prod_lib::startup::run;
+use zero2prod_lib::{configuration, startup::run};
+
+pub struct TestApp {
+    // 测试应用实例的地址
+    pub address: String,
+    // 测试应用使用的db连接池
+    pub db_pool: PgPool,
+}
 
 #[actix_web::test] // 是actix_web::main的测试等价物，可以使用`cargo expand --test health_check`（<- 测试文件名）来看宏生成了哪些代码
 async fn health_check_works() {
     // 准备，即在后台启动应用
-    let address = spawn_app();
+    let test_app = spawn_app().await;
     // 使用 reqwest::Client对应用程序执行HTTP请求
     let client = reqwest::Client::new();
 
     // 执行
     let response = client
-        .get(&format!("{address}/health_check"))
+        .get(&format!("{}/health_check", test_app.address))
         .send()
         .await
         .expect("Failed to execute request");
@@ -25,34 +32,44 @@ async fn health_check_works() {
 }
 
 // 定义在后台某处启动应用程序
-fn spawn_app() -> String {
+async fn spawn_app() -> TestApp {
     // 尝试绑定端口0将触发操作系统扫描可用端口，即选择一个随机的可用的端口
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
     // 得到绑定的随机端口号
     let port = listener.local_addr().unwrap().port();
-    let server = run(listener).expect("Failed to bind address");
+    let address = format!("http://127.0.0.1:{port}");
+
+    let configuration = configuration::get_configuration().expect("Failed to read configuration");
+    let connection_pool = PgPool::connect(&configuration.database.connection_string())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
     // 启动服务器作为后台任务
     let _ = actix_web::rt::spawn(server);
-    format!("http://127.0.0.1:{port}")
+    TestApp {
+        address,
+        db_pool: connection_pool,
+    }
 }
 
 #[actix_web::test]
 async fn subscribe_return_a_200_for_valid_form_data() {
-    let address = spawn_app();
-    let configuration =
-        zero2prod_lib::configuration::get_configuration().expect("Failed to read configuration");
-    let connection_string = configuration.database.connection_string();
-    // 连接Postgres
-    // 注：为了调用PgConnection::connect，必须也导入trait Connection。因为它不是该结构体的内在方法
-    let mut connection = PgConnection::connect(&connection_string)
-        .await
-        .expect("Failed to connect to Postgres.");
+    let test_app = spawn_app().await;
+    // let configuration =
+    //     zero2prod_lib::configuration::get_configuration().expect("Failed to read configuration");
+    // let connection_string = configuration.database.connection_string();
+    // // 连接Postgres
+    // // 注：为了调用PgConnection::connect，必须也导入trait Connection。因为它不是该结构体的内在方法
+    // let mut connection = PgConnection::connect(&connection_string)
+    //     .await
+    //     .expect("Failed to connect to Postgres.");
 
     let client = reqwest::Client::new();
 
     let body = "name=michael%20wang&email=revelationofturing%40gmail.com";
     let response = client
-        .post(&format!("{address}/subscriptions"))
+        .post(&format!("{}/subscriptions", &test_app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
         .send()
@@ -68,9 +85,10 @@ async fn subscribe_return_a_200_for_valid_form_data() {
     // sqlxm每次都将从.env文件中读取DATABASE_URL，省去了每次都要导出环境变量的麻烦。
     // 在.env和configuration.yaml同时存数据库连接参数可能让人不爽。但没关系，.env仅与开发过程、构建和测试步骤相关。
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",) // 从subscriptions表中查询email和name列
-        .fetch_one(&mut connection)
+        // .fetch_one(&mut connection)
+        .fetch_one(&test_app.db_pool)
         .await
-        .expect("Failed to fetch saved subscription.");
+        .expect("Failed to fetch saved subscription");
 
     println!("{:?}", saved);
     assert_eq!(saved.email, "revelationofturing@gmail.com");
@@ -79,7 +97,7 @@ async fn subscribe_return_a_200_for_valid_form_data() {
 
 #[actix_web::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
-    let address = spawn_app();
+    let test_app = spawn_app().await;
     let client = reqwest::Client::new();
     let test_cases = vec![
         ("name=michael%20wang", "email missed"),
@@ -89,7 +107,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 
     for (invalid_body, msg) in test_cases {
         let response = client
-            .post(&format!("{address}/subscriptions"))
+            .post(&format!("{}/subscriptions", &test_app.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(invalid_body)
             .send()
