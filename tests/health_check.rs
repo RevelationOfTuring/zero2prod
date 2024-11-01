@@ -44,7 +44,7 @@ async fn subscribe_return_a_200_for_valid_form_data() {
     let connection_string = configuration.database.connection_string();
     // 连接Postgres
     // 注：为了调用PgConnection::connect，必须也导入trait Connection。因为它不是该结构体的内在方法
-    let connection = PgConnection::connect(&connection_string)
+    let mut connection = PgConnection::connect(&connection_string)
         .await
         .expect("Failed to connect to Postgres.");
 
@@ -60,6 +60,21 @@ async fn subscribe_return_a_200_for_valid_form_data() {
         .expect("Failed to execute request.");
 
     assert_eq!(200, response.status().as_u16());
+
+    // 测试postgres连接
+    // 注：sqlx::query!返回一个匿名的记录类型。在编译时，在验证查询的有效性后生成结构体定义
+    // 每个成员都对应结果中的一个列（如：saved.email对应email列）
+    // sqlx在编译时依赖DATABASE_URL环境变量来确定postgres的位置，建议在根目录下增加一个.env
+    // sqlxm每次都将从.env文件中读取DATABASE_URL，省去了每次都要导出环境变量的麻烦。
+    // 在.env和configuration.yaml同时存数据库连接参数可能让人不爽。但没关系，.env仅与开发过程、构建和测试步骤相关。
+    let saved = sqlx::query!("SELECT email, name FROM subscriptions",) // 从subscriptions表中查询email和name列
+        .fetch_one(&mut connection)
+        .await
+        .expect("Failed to fetch saved subscription.");
+
+    println!("{:?}", saved);
+    assert_eq!(saved.email, "revelationofturing@gmail.com");
+    assert_eq!(saved.name, "michael wang");
 }
 
 #[actix_web::test]
