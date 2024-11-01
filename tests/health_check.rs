@@ -1,7 +1,8 @@
 use std::net::TcpListener;
 
-use sqlx::PgPool;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 // 注：集成测试要求main函数以库的形式向外暴露
+use uuid::Uuid;
 use zero2prod_lib::{configuration, startup::run};
 
 pub struct TestApp {
@@ -39,10 +40,11 @@ async fn spawn_app() -> TestApp {
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{port}");
 
-    let configuration = configuration::get_configuration().expect("Failed to read configuration");
-    let connection_pool = PgPool::connect(&configuration.database.connection_string())
-        .await
-        .expect("Failed to connect to Postgres");
+    let mut configuration =
+        configuration::get_configuration().expect("Failed to read configuration");
+    // 用于测试的数据库名称随机化
+    configuration.database.database_name = Uuid::new_v4().to_string();
+    let connection_pool = configure_database(&configuration.database).await;
 
     let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
     // 启动服务器作为后台任务
@@ -51,6 +53,31 @@ async fn spawn_app() -> TestApp {
         address,
         db_pool: connection_pool,
     }
+}
+
+// 为每次测试都提供一个全信的数据库环境
+pub async fn configure_database(config: &configuration::DatabaseSettings) -> PgPool {
+    // 创建数据库
+    let mut connection = PgConnection::connect(&config.conncection_string_without_db())
+        .await
+        .expect("Failed to connect to Postgres");
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
+        .await
+        .expect("Failed to create database");
+
+    // 迁移数据库
+    let connection_pool = PgPool::connect(&config.connection_string())
+        .await
+        .expect("Failed to migrate the database");
+
+    // sqlx::migrate!和sqlx-cli执行sqlx migrate run时使用的是同一个宏
+    sqlx::migrate!("./migrations")
+        .run(&connection_pool)
+        .await
+        .expect("Failed to migrate the database");
+
+    connection_pool
 }
 
 #[actix_web::test]
