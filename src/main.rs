@@ -5,11 +5,15 @@
 
 use std::net::TcpListener;
 
+use env_logger::Env;
 use sqlx::PgPool;
 use zero2prod_lib::{configuration::get_configuration, startup::run};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // actix-web的Logger中间件：只需要使用init方法，由它来调用set_logger
+    // 如果环境变量RUST_LOG未被设置，则默认输出所有info及以上级别的日志。例子：RUST_LOG=trace cargo run
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     // 从配置文件读配置
     let conf = get_configuration().expect("Failed to read configuration");
     // 创建数据库连接池
