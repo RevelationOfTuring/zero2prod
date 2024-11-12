@@ -1,7 +1,7 @@
 use std::net::TcpListener;
 
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-
 use uuid::Uuid;
 // 注：集成测试要求main函数以库的形式向外暴露
 use zero2prod_lib::{
@@ -9,6 +9,22 @@ use zero2prod_lib::{
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };
+
+// 使用once_cell确保tracing最多只被初始化一次
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+
+    if std::env::var("TEST_LOG").is_ok() {
+        // 如果环境变量TEST_LOG被设置
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        // 如果环境变量TEST_LOG被未设置
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    }
+});
 
 pub struct TestApp {
     // 测试应用实例的地址
@@ -39,8 +55,11 @@ async fn health_check_works() {
 
 // 定义在后台某处启动应用程序
 async fn spawn_app() -> TestApp {
-    let subscriber = get_subscriber("test".into(), "debug".into());
-    init_subscriber(subscriber);
+    // let subscriber = get_subscriber("test".into(), "debug".into());
+    // init_subscriber(subscriber);
+
+    // 只在第一次调用TRACING时运行里面的逻辑，其他时候都会直接跳过该步骤
+    Lazy::force(&TRACING);
 
     // 尝试绑定端口0将触发操作系统扫描可用端口，即选择一个随机的可用的端口
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");

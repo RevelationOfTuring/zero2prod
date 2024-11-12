@@ -1,21 +1,25 @@
-use tracing::{
-    subscriber::set_global_default,
-    Subscriber,
-};
+use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
+use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 
 // 用约束作为返回值类型，避免写出繁琐的真实类型
 // 注：需要显式地将返回类型标记为Send+Sync，以便后面可以将其传递给ini_subscriber()
-pub fn get_subscriber(name: String, env_filter: String) -> impl Subscriber + Send + Sync {
+pub fn get_subscriber<Sink>(
+    name: String,
+    env_filter: String,
+    sink: Sink,
+) -> impl Subscriber + Send + Sync
+// 该语法为高阶特质约束： Sink会实现MakerWriter trait，无论生命周期'a是什么
+where
+    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
+{
     // 如果没有设置'RUST_LOG'环境变量，则输出所有'info'及以上级别的跨度
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
     let formatting_layer = BunyanFormattingLayer::new(
-        name,
-        // 将格式化的跨度输出到stdout
-        std::io::stdout,
+        name, // 将格式化的跨度输出到sink
+        sink,
     );
     // with由SubscriberExt trait提供，可以拓展tracing_subscriber的Subscriber
     Registry::default()

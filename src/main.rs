@@ -14,7 +14,7 @@ async fn main() -> std::io::Result<()> {
     // 如果环境变量RUST_LOG未被设置，则默认输出所有info及以上级别的日志。例子：RUST_LOG=trace cargo run
     // env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let subscriber = get_subscriber("zero2prod".into(), "info".into());
+    let subscriber = get_subscriber("zero2prod".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
 
     // 从配置文件读配置
