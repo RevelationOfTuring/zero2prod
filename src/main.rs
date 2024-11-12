@@ -1,16 +1,12 @@
-// async fn greet(req: HttpRequest) -> impl Responder {
-//     let name = req.match_info().get("name").unwrap_or("World");
-//     format!("Hello {}", name)
-// }
-
 use std::net::TcpListener;
 
 // use env_logger::Env;
 use sqlx::PgPool;
-use tracing::subscriber::set_global_default;
-use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
-use zero2prod_lib::{configuration::get_configuration, startup::run};
+use zero2prod_lib::{
+    configuration::get_configuration,
+    startup::run,
+    telemetry::{get_subscriber, init_subscriber},
+};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -18,20 +14,8 @@ async fn main() -> std::io::Result<()> {
     // 如果环境变量RUST_LOG未被设置，则默认输出所有info及以上级别的日志。例子：RUST_LOG=trace cargo run
     // env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    // 如果没有设置'RUST_LOG'环境变量，则输出所有'info'及以上级别的跨度
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    let formatting_layer = BunyanFormattingLayer::new(
-        "zero2pro".into(),
-        // 将格式化的跨度输出到stdout
-        std::io::stdout,
-    );
-    // with由SubscriberExt trait提供，可以拓展tracing_subscriber的Subscriber
-    let subscriber = Registry::default()
-        .with(env_filter)
-        .with(JsonStorageLayer)
-        .with(formatting_layer);
-    // set_global_default用于指定处理跨度的订阅器
-    set_global_default(subscriber).expect("Failed to set subscriber");
+    let subscriber = get_subscriber("zero2prod".into(), "info".into());
+    init_subscriber(subscriber);
 
     // 从配置文件读配置
     let conf = get_configuration().expect("Failed to read configuration");

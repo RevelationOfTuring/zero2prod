@@ -1,9 +1,14 @@
 use std::net::TcpListener;
 
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-// 注：集成测试要求main函数以库的形式向外暴露
+
 use uuid::Uuid;
-use zero2prod_lib::{configuration, startup::run};
+// 注：集成测试要求main函数以库的形式向外暴露
+use zero2prod_lib::{
+    configuration,
+    startup::run,
+    telemetry::{get_subscriber, init_subscriber},
+};
 
 pub struct TestApp {
     // 测试应用实例的地址
@@ -34,6 +39,9 @@ async fn health_check_works() {
 
 // 定义在后台某处启动应用程序
 async fn spawn_app() -> TestApp {
+    let subscriber = get_subscriber("test".into(), "debug".into());
+    init_subscriber(subscriber);
+
     // 尝试绑定端口0将触发操作系统扫描可用端口，即选择一个随机的可用的端口
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
     // 得到绑定的随机端口号
