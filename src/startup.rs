@@ -17,10 +17,10 @@
 
 use std::net::TcpListener;
 
-use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
-use sqlx::PgPool;
-
 use crate::routes::{health_check, subscribe};
+use actix_web::{dev::Server, web, App, HttpServer};
+use sqlx::PgPool;
+use tracing_actix_web::TracingLogger;
 
 // 使用TcpListener来绑定端口，这样就可以使用端口0来做集成测试
 // 注: 端口0会分配一个可用的随机端口，该端口可以从TcpListener获得
@@ -31,7 +31,8 @@ pub fn run(listener: TcpListener, db_pool: PgPool) -> Result<Server, std::io::Er
     let server = HttpServer::new(move || {
         App::new()
             // 将中间件通过wrap方法加入App中
-            .wrap(Logger::default())
+            // 注：tracing_actix_web::TracingLogger是actix-web的Logger的替代品，基于tracing而非log。这可以使tracing获得进入request的时候actix-web内的一些日志（即正式开始执行我们所写的handler逻辑之前部分）
+            .wrap(TracingLogger::default())
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .app_data(dp_pool.clone())

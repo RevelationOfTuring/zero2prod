@@ -20,8 +20,8 @@ pub struct FormData {
     skip(form, pool),
     // 通过field将某些值添加到跨度是上下文中（语法同tracing::info_span!上的语法类似）
     fields(
-        // 生成一个随机的请求id，用于将日志和请求关联起来
-        request_id = %Uuid::new_v4(),
+        // 生成一个随机的请求id，用于将日志和请求关联起来（此处定义request_id会覆盖TracingLogger提供的request_id，所以要注释掉）
+        // request_id = %Uuid::new_v4(),
         subscriber_emial = %form.email,
         subscriber_name = %form.name,
     )
