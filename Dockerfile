@@ -17,8 +17,8 @@ RUN cargo build --release
 # 运行时阶段（runtime阶段）
 # FROM rust:1.82.0 AS runtime
 
-# 使用纯净的操作系统作为runtime阶段的基础镜像（debian:bullseye-slim），为了减小整个镜像的大小
-FROM debian:bullseye-slim AS runtime
+# 使用纯净的操作系统作为runtime阶段的基础镜像（debian:bookworm-slim），为了减小整个镜像的大小
+FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 # 安装OpenSSL——通过一些依赖动态链接
 # 安装ca-certificates——在建立HTTPS连接时，需要验证TLS证书
