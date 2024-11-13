@@ -86,10 +86,9 @@ async fn spawn_app() -> TestApp {
 // 为每次测试都提供一个全信的数据库环境
 pub async fn configure_database(config: &configuration::DatabaseSettings) -> PgPool {
     // 创建数据库
-    let mut connection =
-        PgConnection::connect(&config.conncection_string_without_db().expose_secret())
-            .await
-            .expect("Failed to connect to Postgres");
+    let mut connection = PgConnection::connect(&config.conncection_string_without_db().expose_secret())
+        .await
+        .expect("Failed to connect to Postgres");
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
