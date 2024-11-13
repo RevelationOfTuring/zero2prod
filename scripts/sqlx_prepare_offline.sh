@@ -5,3 +5,5 @@
 # 注：sqlx prepare 必须作为cargo的子命令来执行，--之后的参数会传给cargo自身。
 # 由于所有的SQL查询都被放在以lib.rs为根的模块中，因此这里必须要指明命令作用于lib部分
 cargo sqlx prepare -- --lib
+
+# 可以使用$ cargo sqlx prepare --workspace --check -- --all-targets来检查sqlx-data.json是否是最新的（需要连接数据库）
