@@ -11,7 +11,8 @@ RUN apt update && apt install lld clang -y
 # 将工作环境中的所有文件复制到Docker镜像中
 COPY . .
 
-ENV SQLX_OFFINE true
+# 开启sqlx的离线模式
+ENV SQLX_OFFINE=true
 
 # 开始编译二进制文件（使用release参数优化以提高速度）
 RUN cargo build --release
