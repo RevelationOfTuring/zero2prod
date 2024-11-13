@@ -15,8 +15,20 @@ ENV SQLX_OFFINE=true
 RUN cargo build --release
 
 # 运行时阶段（runtime阶段）
-FROM rust:1.82.0 AS runtime
+# FROM rust:1.82.0 AS runtime
+
+# 使用纯净的操作系统作为runtime阶段的基础镜像（debian:bullseye-slim），为了减小整个镜像的大小
+FROM debian:bullseye-slim AS runtime
 WORKDIR /app
+# 安装OpenSSL——通过一些依赖动态链接
+# 安装ca-certificates——在建立HTTPS连接时，需要验证TLS证书
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    # 清理
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
 # 从构建环境中复制已编译的二进制文件到运行环境中
 COPY --from=builder /app/target/release/zero2prod zero2prod
 # 在运行时需要的配置文件
