@@ -29,9 +29,11 @@ async fn main() -> std::io::Result<()> {
     // )
     // .await
     // .expect("Failed to connect to Progres");
+    // 推迟在首次启动时建立连接
     let connection_pool = PgPool::connect_lazy(conf.database.connection_string().expose_secret())
         .expect("Failed to create Postgres connection pool.");
-    let address = format!("127.0.0.1:{}", conf.application_port);
+    let address = format!("{}:{}", conf.application.host, conf.application.port);
+    dbg!(&address);
     let listener = TcpListener::bind(&address)?;
     run(listener, connection_pool)?.await
 }
