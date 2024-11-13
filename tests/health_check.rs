@@ -1,6 +1,7 @@
 use std::net::TcpListener;
 
 use once_cell::sync::Lazy;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 // 注：集成测试要求main函数以库的形式向外暴露
@@ -85,16 +86,17 @@ async fn spawn_app() -> TestApp {
 // 为每次测试都提供一个全信的数据库环境
 pub async fn configure_database(config: &configuration::DatabaseSettings) -> PgPool {
     // 创建数据库
-    let mut connection = PgConnection::connect(&config.conncection_string_without_db())
-        .await
-        .expect("Failed to connect to Postgres");
+    let mut connection =
+        PgConnection::connect(&config.conncection_string_without_db().expose_secret())
+            .await
+            .expect("Failed to connect to Postgres");
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("Failed to create database");
 
     // 迁移数据库
-    let connection_pool = PgPool::connect(&config.connection_string())
+    let connection_pool = PgPool::connect(&config.connection_string().expose_secret())
         .await
         .expect("Failed to migrate the database");
 

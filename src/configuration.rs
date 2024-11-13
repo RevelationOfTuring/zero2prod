@@ -1,3 +1,4 @@
+use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 // 注：一个struct中所有字段都必须是可反序列化的，这样整个类型才能是可反序列化的
@@ -10,25 +11,37 @@ pub struct Settings {
 #[derive(Deserialize)]
 pub struct DatabaseSettings {
     pub username: String,
-    pub password: String,
+    // 密码设置为隐私数据
+    pub password: Secret<String>,
     pub port: u16,
     pub host: String,
     pub database_name: String,
 }
 
 impl DatabaseSettings {
-    pub fn connection_string(&self) -> String {
-        format!(
+    pub fn connection_string(&self) -> Secret<String> {
+        // 将数据库url变成隐私数据
+        Secret::new(format!(
             "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database_name
-        )
+            self.username,
+            // 使用expose_secret暴露得到隐私内部数据
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            self.database_name
+        ))
     }
 
-    pub fn conncection_string_without_db(&self) -> String {
-        format!(
+    pub fn conncection_string_without_db(&self) -> Secret<String> {
+        // 将数据库url变成隐私数据
+        Secret::new(format!(
             "postgres://{}:{}@{}:{}",
-            self.username, self.password, self.host, self.port
-        )
+            self.username,
+            // 使用expose_secret暴露得到隐私内部数据
+            self.password.expose_secret(),
+            self.host,
+            self.port
+        ))
     }
 }
 

@@ -1,5 +1,6 @@
 use std::net::TcpListener;
 
+use secrecy::ExposeSecret;
 // use env_logger::Env;
 use sqlx::PgPool;
 use zero2prod_lib::{
@@ -22,7 +23,10 @@ async fn main() -> std::io::Result<()> {
     // 创建数据库连接池
     // 注：当&PgPool运行数据库查询时，sqlx将从连接池中借用PgConnection并用他来进行查询；
     // 如果此时没有可用的连接，&PgPool将创建一个新连接或者等待一个空闲的连接
-    let connection_pool = PgPool::connect(&conf.database.connection_string())
+    let connection_pool = PgPool::connect(
+        // 数据库url为隐私数据，使用expose_secret暴露其内部数据
+        &conf.database.connection_string().expose_secret()
+    )
         .await
         .expect("Failed to connect to Progres");
     let address = format!("127.0.0.1:{}", conf.application_port);

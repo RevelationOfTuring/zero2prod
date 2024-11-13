@@ -3,7 +3,7 @@ use chrono::Utc;
 use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct FormData {
     email: String,
     name: String,
@@ -16,6 +16,7 @@ pub struct FormData {
     // name为跨度自身的日志消息（这个参数如果被忽略，则会使用函数名字）
     name = "Adding a new subscriber",
     // 很多时候我们不希望日志中记录某些参数（如pool），这时就可以显式地指定如何捕获它们——可通过skip指令告诉tracing忽略它们
+    // 注：tracing会自动记录显示所有传入跨度的参数，如果不希望在日志中记录某些变量，请使用skip();
     skip(form, pool),
     // 通过field将某些值添加到跨度是上下文中（语法同tracing::info_span!上的语法类似）
     fields(
@@ -77,7 +78,7 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
     // // 首先要绑定query_span这个插桩，然后等待这个future完成
     // .instrument(query_span)
     // .await
-    match insert_subscriber(&pool, &form).await{
+    match insert_subscriber(&pool, &form).await {
         Ok(_) => {
             // tracing::info!("request_id {request_id} - New subscriber details have been saved");
             HttpResponse::Ok().finish()
@@ -89,11 +90,12 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
         //     tracing::error!("Failed to execute query: {:?}", e);
         //     HttpResponse::InternalServerError().finish()
         // }
-        Err(_)=>HttpResponse::InternalServerError().finish()
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
 // 负责数据库逻辑，并不关心web框架。我们并不会把web::Form和web::Data传给它
+// 此时insert_subscriber相当于是subscribe的子跨度
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
     skip(form, pool)
